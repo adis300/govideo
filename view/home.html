@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <title>Snap Engage</title>
+    <meta name="viewport" content="width=device-width">
+    <!-- Place favicon.ico and apple-touch-icon.png in the root directory -->
+    <link rel="stylesheet" href="public/css/home.css">
+    <script src="public/js/jquery-2.1.4.min.js"></script>
+    <script src="public/js/angular.min.js"></script>
+    <script src="public/js/angular-resource.min.js"></script>
+</head>
+<body ng-app="app" ng-controller="HomeCtrl">
+    <h1>Welcome to SnapE video </h1>
+    Angular is working? Next line should change :)<br>
+    {{meetingRoom}}
+    <form action="{{getMeetingRoom()}}" method="GET">
+        <input ng-model="meetingRoom" type="text" autofocus placeholder="Meeting room"
+        pattern="[A-Za-z0-9]{3,40}" title="Please enter a valid room">
+        <input type="submit" value="Enter">
+    </form>
+</body>
+
+<script>
+var rtcApp = angular.module('app',[]);
+rtcApp.controller('HomeCtrl', function($scope) {
+    //$scope.meetingRoom = "";
+    $scope.getMeetingRoom = function() {return "/" + $scope.meetingRoom }
+});
+</script>
+
+</html>

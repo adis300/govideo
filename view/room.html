@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <title>Snap Engage</title>
+    <meta name="viewport" content="width=device-width">
+    <!-- Place favicon.ico and apple-touch-icon.png in the root directory -->
+    <link rel="stylesheet" href="public/css/room.css">
+    <script src="public/js/jquery-2.1.4.min.js"></script>
+    <script src="public/js/angular.min.js"></script>
+    <script src="public/js/angular-resource.min.js"></script>
+</head>
+<body ng-app="app" ng-controller="RoomCtrl">
+    <nav>
+        <span>Logo</span>
+        <span>Link to the room that you can send to others</span>
+        <a href="#">Lock room</a>
+        <a href="#">Leave</a>
+    </nav>
+    <h1>{{displayName}}</h1>
+    <p>Hahah</p>
+
+    <div>Video placeholder1</div>
+    <div>Video placeholder2</div>
+
+</body>
+
+<script>
+var app = angular.module('app',[]);
+app.controller('RoomCtrl', function($scope) {
+    // Find the path of the room, establish a connection via websocket.
+    $scope.connected = false;
+    $scope.isEditingName = false;
+    $scope.path = document.location.pathname;
+    console.log("Path is :" + $scope.path);
+    $scope.displayName = $scope.path.substring(1);
+
+    SOCKET_STATES = {
+        CONNECTING : 0,
+        OPEN: 1,
+        CLOSING: 2,
+        CLOSED: 3
+    };
+
+    var socket = new WebSocket("ws://"+document.location.host + "/ws" + $scope.path);
+    socket.onopen = function(e){
+        socket.send(JSON.stringify(
+                {
+                    "message": "hahaha",
+                    "handle": "a31"
+                }
+            ));
+        socket.send("This is a second message");
+        $scope.$apply(function(){$scope.connected = true})
+    };
+    socket.onclose = function(e){
+        $scope.$apply(function(){ $scope.connected = false })
+    };
+    socket.onmessage = function(e){
+        console.log("Raw message received:");
+        var msg = e.data;
+        console.log(e.data);
+        if(msg){
+            switch (msg.type) {
+                case 2:
+                    $scope.$apply(function(){ $scope.displayName = msg.content })
+                    break;
+                default:
+                    alert("Unknown message from server received");
+            }
+        }
+
+    }
+    var sendMessage = function(msg){
+        console.log("Raw message to send:");
+        console.log(msg);
+        if(socket){
+            if(socket.readyState == SOCKET_STATES.OPEN){
+                socket.send(msg);
+            }else alert('Connection is not open');
+        }else alert('Connection is closed');
+    };
+
+    $scope.updateName = function(newName){
+        var rawMsg = JSON.stringify({
+            type: 1,
+            content:newName
+        })
+        sendMessage(rawMsg);
+    }
+
+});
+</script>
+
+</html>

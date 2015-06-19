@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <title>Demo chat</title>
+    <meta name="viewport" content="width=device-width">
+    <script src="public/js/angular.min.js"></script>
+</head>
+<body ng-app="app" ng-controller="ChatCtrl">
+    <h1>Chat</h1>
+    <ul>
+        <li ng-repeat="m in messages">{{m}}</li>
+    </ul>
+    <input type="text" placeholder="Type here" ng-model="msg">
+    <button ng-click="sendMsg()">send</button>
+</body>
+
+<script>
+var rtcApp = angular.module('app',[]);
+rtcApp.controller('ChatCtrl', function($scope) {
+    $scope.messages = [];
+    var conn = new WebSocket("ws://localhost:9727/ws");
+    conn.onclose = function(e){
+        $scope.$apply(function(){
+            $scope.messages.push("DISCONNECTED")
+        })
+    }
+    conn.onopen = function(e){
+        $scope.$apply(function(){
+            $scope.messages.push("CONNECTED")
+        })
+    }
+    conn.onmessage = function(e){
+        console.log(e.data)
+        $scope.$apply(function(){
+            $scope.messages.push(e.data)
+        })
+    }
+    $scope.sendMsg = function(){
+        conn.send($scope.msg);
+        $scope.msg = ''
+    }
+
+});
+</script>
+
+</html>

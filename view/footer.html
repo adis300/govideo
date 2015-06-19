@@ -1,0 +1,18 @@
+
+    <div class="site-footer-menu text-center row">
+        <a href="/">Home</a> | 
+        <a href="/about">About</a> | 
+        <a href="/legal">Legal</a> | 
+        {% if loggedin == true: %}
+            <a href="/logout">Logout</a>
+        {% endif %}
+        {% if loggedin != true: %}
+            <a href="/login">Login</a> | 
+            <a href="/signup">Sign Up</a>
+        {% endif %}
+    </div>
+    
+    <div class="site-copyright text-center row">
+        Copyright &copy; 2014, COPYRIGHT_HOLDER. All rights reserved.
+    </div>
+    
