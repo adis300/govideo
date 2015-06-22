@@ -8,6 +8,7 @@
     <!-- Place favicon.ico and apple-touch-icon.png in the root directory -->
     <link rel="stylesheet" href="public/css/room.css">
     <script src="public/js/jquery-2.1.4.min.js"></script>
+    <script src="public/js/adapter.js"></script>
     <script src="public/js/angular.min.js"></script>
     <script src="public/js/angular-resource.min.js"></script>
 </head>
@@ -15,11 +16,12 @@
     <nav>
         <span>Logo</span>
         <span>Link to the room that you can send to others</span>
-        <a href="#">Lock room</a>
+        <a href="#" ng-hide="locked" ng-click="lockRoom(true)">Lock room</a>
+        <a href="#" ng-show="locked" ng-click="lockRoom(false)">Unlock room</a>
         <a href="#">Leave</a>
     </nav>
-    <h1>{{displayName}}</h1>
-    <p>Hahah</p>
+    <h1 ng-hide="shouldShowNameEdit()" ng-click="isEditingName=true">{{displayName}}</h1>
+    <input ng-show="shouldShowNameEdit()" ng-model="displayName" ng-keyup="editNameKeyboardEvent($event)">
 
     <div>Video placeholder1</div>
     <div>Video placeholder2</div>

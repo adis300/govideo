@@ -1,12 +1,13 @@
 package main
 
 import (
-	"encoding/json"
 	"log"
 	"net/http"
 
+	"github.com/bitly/go-simplejson"
 	"github.com/gorilla/mux"
 	"github.com/gorilla/websocket"
+	"github.com/pborman/uuid"
 )
 
 // Meeting represents information about dogs.
@@ -19,14 +20,17 @@ type Meeting struct {
 
 // User is a struct that has connections;
 type User struct {
+	Cid     string
 	Name    string
 	IsOwner bool
 }
 
-// ClientMessage is a client message structure record
-type ClientMessage struct {
-	Type    int
-	Content string
+func (meeting *Meeting) getPeerCids() []string {
+	peers := []string{}
+	for _, peer := range meeting.Users {
+		peers = append(peers, peer.Cid)
+	}
+	return peers
 }
 
 var allMeetings map[string]*Meeting
@@ -46,24 +50,49 @@ func meetingHandler(w http.ResponseWriter, r *http.Request) {
 
 func roomMessageHandler(room string, msg []byte, conn *websocket.Conn) {
 	log.Println("Message received from client:" + room)
-	var clientMessage ClientMessage
-	log.Println(string(msg))
-	json.Unmarshal(msg, &clientMessage)
-	switch clientMessage.Type {
+	clientMessage, err := simplejson.NewJson(msg)
+	if err != nil {
+		log.Println("Json parsing error")
+		return
+	}
+	switch clientMessage.Get("type").MustInt() {
+	case RTC:
+		handleRtc(room, clientMessage, conn)
 	case UPDATE_DISPLAY_NAME:
-		updateDisplayName(room, clientMessage.Content, conn)
+		updateUserName(room, clientMessage.Get("name").MustString(), conn)
 	case LOCK_ROOM:
-		lockRoom(room, clientMessage.Content)
+		lockRoom(room, clientMessage.Get("flag").MustBool())
 	default:
 		log.Println("Unknown message received")
 	}
 }
+func handleRtc(room string, clientMessage *simplejson.Json, conn *websocket.Conn) {
+	rtcData := clientMessage.Get("data")
+	rm := rtcData.Get("rm").MustString()
+	if rm == room {
+		if meeting := getMeeting(room); meeting != nil {
+			switch clientMessage.Get("eventName").MustString() {
+			case "__join":
+				createUserCid(meeting, rtcData.Get("cid").MustString(), conn)
+			default:
+			}
+		}
+	} else {
+		log.Println("Invalid room from socket. May be a hack!")
+	}
 
-func updateDisplayName(room string, newName string, conn *websocket.Conn) {
 }
-func lockRoom(room string, lockCmd string) {
-	// getMeeting from here.
-	lockFlag := lockCmd == "lc"
+
+func createUserCid(meeting *Meeting, cid string, conn *websocket.Conn) {
+	meeting.Users[conn].Cid = cid
+
+}
+
+func updateUserName(room string, newName string, conn *websocket.Conn) {
+	log.Println("Broadcast new name to all other connections")
+}
+
+func lockRoom(room string, lockFlag bool) {
 	if lockFlag {
 		log.Println("Broadcast a lock message")
 	} else {
@@ -85,12 +114,14 @@ func socketHandler(w http.ResponseWriter, r *http.Request) {
 				if readErr == nil {
 					roomMessageHandler(roomPath, msg, conn)
 				} else {
+					log.Println("Socket read error:")
 					log.Println(readErr)
 					return
 				}
 			}
 		}
 	} else {
+		log.Println("Socket connection error: ")
 		log.Println(err)
 	}
 }
@@ -100,26 +131,30 @@ func getMeeting(room string) *Meeting {
 }
 
 func createUser(name string, isOwner bool) *User {
-	return &User{Name: name, IsOwner: isOwner}
+	cid := uuid.NewUUID().String()
+	return &User{Cid: cid, Name: name, IsOwner: isOwner}
 }
 
 func addUserToRoom(room string, conn *websocket.Conn, name string, isOwner bool) *Meeting {
 	meeting := getMeeting(room)
 	user := createUser(name, isOwner)
-
-	if meeting == nil {
-		meeting = createMeeting(room, conn, user)
+	if err := conn.WriteMessage(websocket.TextMessage, encodePeersMessage(meeting.getPeerCids(), user.Cid)); err != nil {
+		conn.Close()
 	} else {
-		log.Println("Meeting found: " + room)
-
-		for userConnection := range meeting.Users {
-			if err := userConnection.WriteMessage(websocket.TextMessage, []byte("New person has arrived")); err != nil {
-				deleteUser(userConnection, meeting)
+		if meeting == nil {
+			meeting = createMeeting(room, conn, user)
+		} else {
+			log.Println("Meeting found: " + room)
+			for userConnection := range meeting.Users {
+				if err := userConnection.WriteMessage(websocket.TextMessage, encodeNewPeerMessage(user.Cid)); err != nil {
+					deleteUser(userConnection, meeting)
+				}
 			}
+			meeting.Users[conn] = user
+			log.Println("User added")
 		}
-		meeting.Users[conn] = user
-		log.Println("User added")
 	}
+
 	return meeting
 }
 
