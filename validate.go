@@ -8,8 +8,8 @@ func ValidateUser(room string, owner string, ownerName string, participantName s
 	}
 	if len(owner) > 0 {
 		if true { // Check that owner is valid hash
-			return User{Name: name, IsOwner: true, Handle: room}
+			return User{Name: name, IsOwner: true}
 		}
 	}
-	return User{Name: participantName, IsOwner: false, Handle: ""}
+	return User{Name: participantName, IsOwner: false}
 }
