@@ -238,13 +238,24 @@ func init() {
 	allMeetings = make(map[string]*Meeting)
 }
 
+func testHandler(w http.ResponseWriter, r *http.Request) {
+	roomPath := mux.Vars(r)["room"]
+	log.Println(roomPath)
+	if len(roomPath) < 3 { // roomPath is not available or not valid
+		w.Write([]byte("Invalid room url"))
+	} else {
+		w.Write(LoadView("test"))
+	}
+}
+
 func main() {
 	// handle all requests by serving a file of the same name
 	fileServer := http.FileServer(http.Dir("public"))
 
 	router := mux.NewRouter()
 	router.HandleFunc("/", entranceHandler)
-	router.HandleFunc("/{room}", meetingHandler)
+	router.HandleFunc("/{room}", testHandler)
+	//router.HandleFunc("/{room}", meetingHandler)
 	router.PathPrefix("/public").Handler(http.StripPrefix("/public", fileServer))
 	router.HandleFunc("/ws/{room}", socketHandler)
 	http.Handle("/", router)
