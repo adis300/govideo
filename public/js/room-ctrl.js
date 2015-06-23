@@ -138,8 +138,8 @@ app.controller('RoomCtrl', function($scope) {
         };
         socket.onmessage = function(e){
             console.log("Raw message received:");
+            console.log(e.data);
             var msg = JSON.parse(e.data);
-            console.log(msg);
             if(msg){
                 switch (msg.type) {
                     case MESSAGE_TYPES.RTC:

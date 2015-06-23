@@ -74,5 +74,5 @@ func encodeOfferAnswer(offerOrAnswer string, senderCid string, senderSdp *simple
 }
 
 func encodeIceCandidate(senderCid string, label string, candidate string) []byte {
-	return []byte(fmt.Sprintf(`{"type":0,"eventName":"offer","data":{"cid":"%s","label":"%s","candidate":"%s"}}`, senderCid, label, candidate))
+	return []byte(fmt.Sprintf(`{"type":0,"eventName":"ice_candidate","data":{"cid":"%s","label":%s,"candidate":"%s"}}`, senderCid, label, candidate))
 }

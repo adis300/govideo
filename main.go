@@ -3,6 +3,7 @@ package main
 import (
 	"log"
 	"net/http"
+	"strconv"
 
 	"github.com/bitly/go-simplejson"
 	"github.com/gorilla/mux"
@@ -80,23 +81,22 @@ func handleRtc(room string, clientMessage *simplejson.Json, conn *websocket.Conn
 	rm := rtcData.Get("rm").MustString()
 	if rm == room {
 		if meeting := getMeeting(room); meeting != nil {
-			data := clientMessage.Get("data")
-			targetCid := data.Get("cid").MustString()
+			targetCid := rtcData.Get("cid").MustString()
 			sender := meeting.Users[conn]
 			if sender != nil && len(targetCid) > 0 {
 				if targetConn := meeting.getConn(targetCid); targetConn != nil {
 					switch clientMessage.Get("eventName").MustString() {
 					case "answer":
 						log.Println("Answer received:")
-						if senderSdp := data.Get("sdp"); senderSdp != nil {
+						if senderSdp := rtcData.Get("sdp"); senderSdp != nil {
 							if err := targetConn.WriteMessage(websocket.TextMessage, encodeOfferAnswer("answer", sender.Cid, senderSdp)); err != nil {
 								deleteUser(targetConn, meeting)
 							}
 						}
 					case "offer":
 						log.Println("Offer received:")
-						log.Println(data.Get("sdp").MustString())
-						if senderSdp := data.Get("sdp"); senderSdp != nil {
+						log.Println(rtcData.Get("sdp").MustString())
+						if senderSdp := rtcData.Get("sdp"); senderSdp != nil {
 							log.Println("Sdp information is available")
 							if err := targetConn.WriteMessage(websocket.TextMessage, encodeOfferAnswer("offer", sender.Cid, senderSdp)); err != nil {
 								deleteUser(targetConn, meeting)
@@ -106,10 +106,10 @@ func handleRtc(room string, clientMessage *simplejson.Json, conn *websocket.Conn
 						}
 					case "ice_candidate":
 						log.Println("Ice candidate received:")
-						label := data.Get("label").MustString()
-						candidate := data.Get("candidate").MustString()
-						if len(label) > 0 && len(candidate) > 0 {
-							if err := targetConn.WriteMessage(websocket.TextMessage, encodeIceCandidate(sender.Cid, label, candidate)); err != nil {
+						label := rtcData.Get("label").MustInt()
+						candidate := rtcData.Get("candidate").MustString()
+						if len(candidate) > 0 {
+							if err := targetConn.WriteMessage(websocket.TextMessage, encodeIceCandidate(sender.Cid, strconv.Itoa(label), candidate)); err != nil {
 								deleteUser(targetConn, meeting)
 							}
 						}
@@ -168,7 +168,7 @@ func getMeeting(room string) *Meeting {
 }
 
 func createUser(name string, isOwner bool) *User {
-	cid := uuid.NewUUID().String()
+	cid := uuid.NewRandom().String()
 	return &User{Cid: cid, Name: name, IsOwner: isOwner}
 }
 
