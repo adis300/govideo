@@ -62,6 +62,7 @@ app.controller('RoomCtrl', function($scope) {
                 $scope.connected = true;
                 $scope.mycid = data.mycid;
                 $scope.createStream();
+                $scope.peerCids = data.peers;
                 break;
             case "new_peer":
                 $scope.peerCids.push(data.cid);
@@ -89,10 +90,12 @@ app.controller('RoomCtrl', function($scope) {
                     pc.setLocalDescription(sessionDesc);
                     $scope.sendMessage(
                         JSON.stringify({
-                            "eventName": "answer",
-                            "data": {
-                                "cid": data.cid,
-                                "sdp": sessionDesc
+                            type: MESSAGE_TYPES.RTC,
+                            eventName: "answer",
+                            data: {
+                                rm: room,
+                                cid: data.cid,
+                                sdp: sessionDesc
                             }
                         }));
                         }, function(error) {
@@ -117,11 +120,10 @@ app.controller('RoomCtrl', function($scope) {
         };
         socket.onclose = function(e){
             $scope.$apply(function(){
-                if($scope.localMediaStream)$scope.localMediaStream.close();
-                var pcs = $scope.peerConns;
-                for (i = pcs.length; i--;) {
-                    $scope.closePeerConnection(pcs[i]);
-                }
+                if($scope.localMediaStream) $scope.localMediaStream.close();
+                $scope.peerCids.forEach(function(peerCid){
+                    $scope.closePeerConnection(peerConns[peerCid]);
+                });
                 $scope.peerConns = [];
                 $scope.dataChannels = {};
                 //$scope.fileChannels = {};
@@ -156,32 +158,44 @@ app.controller('RoomCtrl', function($scope) {
             console.log(err);
         };
     };
+    $scope.closePeerConnection = function(peerConn){
+        if(!peerConn) return;
+        else{
+            if(peerConn.close) peerConn.close();
+        }
+    };
 
     //~~~~~~~~~~~~~~~~~~~~~~~ Stream and signaling ~~~~~~~~~~~~~~~~~
     $scope.sendOffers = function() {
         var pcCreateOfferCbGen = function(pc, cid) {
-                return function(sessionDesc) {
-                    pc.setLocalDescription(sessionDesc);
-                    $scope.sendMessage(
-                        JSON.stringify({
-                            eventName: "offer",
-                            data: {
-                                sdp: sessionD,
-                                cid: cid
-                            }
-                        })
-                    );
-                };
+            return function(sessionDesc) {
+                pc.setLocalDescription(sessionDesc);
+                sendMessage(
+                    JSON.stringify({
+                        type : MESSAGE_TYPES.RTC,
+                        eventName: "offer",
+                        data: {
+                            rm: room,
+                            sdp: sessionDesc,
+                            cid: cid
+                        }
+                    })
+                );
             };
+        };
         var pcCreateOfferErrorCb = function(error) {
             console.log(error);
         };
+        console.log("peer cids:");
+        console.log($scope.peerCids);
         $scope.peerCids.forEach(function(peerCid){
-            pc = peerConns[peerCid];
+            pc = $scope.peerConns[peerCid];
+            console.log("Creating offer to each peer");
             pc.createOffer(pcCreateOfferCbGen(pc, peerCid), pcCreateOfferErrorCb);
         });
     };
     $scope.createStream = function(){
+        console.log("Attempting to create stream");
         if (getUserMedia) {
             var options = {video: true, audio: true};
             $scope.numStreams++;
@@ -190,6 +204,7 @@ app.controller('RoomCtrl', function($scope) {
                 $scope.initializedStreams++;
                 //TODO: play the created stream
                 if ($scope.initializedStreams === $scope.numStreams) {
+                    console.log("Stream created");
                     $scope.createPeerConns();
                     $scope.addStreams();
                     //$scope.addDataChannels();
@@ -262,11 +277,13 @@ app.controller('RoomCtrl', function($scope) {
         peerConn.onicecandidate = function(evt) {
             if (evt.candidate){
                 var rawMsg = JSON.stringify({
-                    "eventName": "ice_candidate",
+                    type: MESSAGE_TYPES.RTC,
+                    eventName: "ice_candidate",
                     data:{
-                        "label": evt.candidate.sdpMLineIndex,
-                        "candidate": evt.candidate.candidate,
-                        "cid": cid
+                        rm: room,
+                        label: evt.candidate.sdpMLineIndex,
+                        candidate: evt.candidate.candidate,
+                        cid: cid
                     }
                 });
                 sendMessage(rawMsg);
@@ -274,7 +291,7 @@ app.controller('RoomCtrl', function($scope) {
             }
         };
         peerConn.onopen = function() {
-            that.emit("pc_opened", socketId, pc);
+            //that.emit("pc_opened", cid, pc);
         };
         peerConn.onaddstream = function(evt) {
             $scope.attachPeerStream(evt.stream, cid);
@@ -301,7 +318,7 @@ app.controller('RoomCtrl', function($scope) {
     // Add local stream to all peers
     $scope.addStreams = function() {
         $scope.peerCids.forEach(function(peerCid){
-            peerConns[peerCid].addStream($scope.localMediaStream);
+            $scope.peerConns[peerCid].addStream($scope.localMediaStream);
         });
     };
 

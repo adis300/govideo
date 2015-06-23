@@ -24,14 +24,18 @@ func encodeNewPeerMessage(cid string) []byte {
 }
 
 func encodePeersMessage(peerCids []string, mycid string) []byte {
-	peers := ""
-	for _, peerCid := range peerCids {
-		peers += `"` + peerCid + `",`
+	if peerCids != nil {
+		peers := ""
+		for _, peerCid := range peerCids {
+			peers += `"` + peerCid + `",`
+		}
+		if len(peers) > 0 {
+			peers = peers[0 : len(peers)-1]
+		}
+		return []byte(fmt.Sprintf(`{"type":0,"eventName":"peers","data":{"mycid":"%s","peers":[%s]}}`, mycid, peers))
 	}
-	if len(peers) > 0 {
-		peers = peers[0 : len(peers)-1]
-	}
-	return []byte(fmt.Sprintf(`{"type":0,"eventName":"peers","data":{"mycid":"%s","peers":[%s]}}`, mycid, peers))
+
+	return []byte(fmt.Sprintf(`{"type":0,"eventName":"peers","data":{"mycid":"%s","peers":[]}}`, mycid))
 }
 
 func encodeRemovePeerMessage(cid string) []byte {

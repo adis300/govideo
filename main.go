@@ -87,18 +87,25 @@ func handleRtc(room string, clientMessage *simplejson.Json, conn *websocket.Conn
 				if targetConn := meeting.getConn(targetCid); targetConn != nil {
 					switch clientMessage.Get("eventName").MustString() {
 					case "answer":
+						log.Println("Answer received:")
 						if senderSdp := data.Get("sdp").MustString(); len(senderSdp) > 0 {
 							if err := targetConn.WriteMessage(websocket.TextMessage, encodeAnswer(sender.Cid, senderSdp)); err != nil {
 								deleteUser(targetConn, meeting)
 							}
 						}
 					case "offer":
-						if senderSdp := data.Get("sdp").MustString(); len(senderSdp) > 0 {
+						log.Println("Offer received:")
+						log.Println(data.Get("sdp").MustString())
+						if senderSdp := data.Get("sdp"); sdp != nil {
+							log.Println("Sdp information is available")
 							if err := targetConn.WriteMessage(websocket.TextMessage, encodeOffer(sender.Cid, senderSdp)); err != nil {
 								deleteUser(targetConn, meeting)
+								log.Println("Offer failed to send")
 							}
+							log.Println("Offer sent if not failed")
 						}
 					case "ice_candidate":
+						log.Println("Ice candidate received:")
 						label := data.Get("label").MustString()
 						candidate := data.Get("candidate").MustString()
 						if len(label) > 0 && len(candidate) > 0 {
@@ -144,7 +151,7 @@ func socketHandler(w http.ResponseWriter, r *http.Request) {
 				if readErr == nil {
 					roomMessageHandler(roomPath, msg, conn)
 				} else {
-					log.Println("Socket read error:")
+					log.Println("Socket read error(This socket might be dropped):")
 					log.Println(readErr)
 					return
 				}
@@ -170,7 +177,7 @@ func addUserToRoom(room string, conn *websocket.Conn, name string, isOwner bool)
 	user := createUser(name, isOwner)
 	if meeting == nil {
 		meeting = createMeeting(room, conn, user)
-		if er := conn.WriteMessage(websocket.TextMessage, encodePeersMessage(meeting.getPeerCids(), user.Cid)); er != nil {
+		if er := conn.WriteMessage(websocket.TextMessage, encodePeersMessage(nil, user.Cid)); er != nil {
 			conn.Close()
 		}
 	} else {
