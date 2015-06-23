@@ -33,6 +33,15 @@ func (meeting *Meeting) getPeerCids() []string {
 	return peers
 }
 
+func (meeting *Meeting) getConn(cid string) *websocket.Conn {
+	for conn, user := range meeting.Users {
+		if user.Cid == cid {
+			return conn
+		}
+	}
+	return nil
+}
+
 var allMeetings map[string]*Meeting
 
 func entranceHandler(w http.ResponseWriter, r *http.Request) {
@@ -71,20 +80,41 @@ func handleRtc(room string, clientMessage *simplejson.Json, conn *websocket.Conn
 	rm := rtcData.Get("rm").MustString()
 	if rm == room {
 		if meeting := getMeeting(room); meeting != nil {
-			switch clientMessage.Get("eventName").MustString() {
-			case "__join":
-				createUserCid(meeting, rtcData.Get("cid").MustString(), conn)
-			default:
+			data := clientMessage.Get("data")
+			targetCid := data.Get("cid").MustString()
+			sender := meeting.Users[conn]
+			if sender != nil && len(targetCid) > 0 {
+				if targetConn := meeting.getConn(targetCid); targetConn != nil {
+					switch clientMessage.Get("eventName").MustString() {
+					case "answer":
+						if senderSdp := data.Get("sdp").MustString(); len(senderSdp) > 0 {
+							if err := targetConn.WriteMessage(websocket.TextMessage, encodeAnswer(sender.Cid, senderSdp)); err != nil {
+								deleteUser(targetConn, meeting)
+							}
+						}
+					case "offer":
+						if senderSdp := data.Get("sdp").MustString(); len(senderSdp) > 0 {
+							if err := targetConn.WriteMessage(websocket.TextMessage, encodeOffer(sender.Cid, senderSdp)); err != nil {
+								deleteUser(targetConn, meeting)
+							}
+						}
+					case "ice_candidate":
+						label := data.Get("label").MustString()
+						candidate := data.Get("candidate").MustString()
+						if len(label) > 0 && len(candidate) > 0 {
+							if err := targetConn.WriteMessage(websocket.TextMessage, encodeIceCandidate(sender.Cid, label, candidate)); err != nil {
+								deleteUser(targetConn, meeting)
+							}
+						}
+					default:
+						log.Println("Unknown rtc message")
+					}
+				}
 			}
 		}
 	} else {
 		log.Println("Invalid room from socket. May be a hack!")
 	}
-
-}
-
-func createUserCid(meeting *Meeting, cid string, conn *websocket.Conn) {
-	meeting.Users[conn].Cid = cid
 
 }
 
@@ -138,21 +168,23 @@ func createUser(name string, isOwner bool) *User {
 func addUserToRoom(room string, conn *websocket.Conn, name string, isOwner bool) *Meeting {
 	meeting := getMeeting(room)
 	user := createUser(name, isOwner)
-	if err := conn.WriteMessage(websocket.TextMessage, encodePeersMessage(meeting.getPeerCids(), user.Cid)); err != nil {
-		conn.Close()
-	} else {
-		if meeting == nil {
-			meeting = createMeeting(room, conn, user)
-		} else {
-			log.Println("Meeting found: " + room)
-			for userConnection := range meeting.Users {
-				if err := userConnection.WriteMessage(websocket.TextMessage, encodeNewPeerMessage(user.Cid)); err != nil {
-					deleteUser(userConnection, meeting)
-				}
-			}
-			meeting.Users[conn] = user
-			log.Println("User added")
+	if meeting == nil {
+		meeting = createMeeting(room, conn, user)
+		if er := conn.WriteMessage(websocket.TextMessage, encodePeersMessage(meeting.getPeerCids(), user.Cid)); er != nil {
+			conn.Close()
 		}
+	} else {
+		log.Println("Meeting found: " + room)
+		if er := conn.WriteMessage(websocket.TextMessage, encodePeersMessage(meeting.getPeerCids(), user.Cid)); er != nil {
+			conn.Close()
+		}
+		for userConnection := range meeting.Users {
+			if err := userConnection.WriteMessage(websocket.TextMessage, encodeNewPeerMessage(user.Cid)); err != nil {
+				deleteUser(userConnection, meeting)
+			}
+		}
+		meeting.Users[conn] = user
+		log.Println("User added")
 	}
 
 	return meeting
@@ -163,7 +195,7 @@ func deleteUser(conn *websocket.Conn, meeting *Meeting) {
 	delete(meeting.Users, conn)
 	if len(meeting.Users) > 0 {
 		for userConnection, user := range meeting.Users {
-			if err := userConnection.WriteMessage(websocket.TextMessage, []byte("Some one left: "+user.Name)); err != nil {
+			if err := userConnection.WriteMessage(websocket.TextMessage, encodeRemovePeerMessage(user.Cid)); err != nil {
 				deleteUser(userConnection, meeting)
 			}
 		}

@@ -1,3 +1,4 @@
+// This file does not use encoding/json Marshal because we believe string operation is faster;
 package main
 
 import "fmt"
@@ -19,7 +20,7 @@ func encodeNewPeerMessage(cid string) []byte {
 */
 
 func encodeNewPeerMessage(cid string) []byte {
-	return []byte(fmt.Sprintf(`{"type":0,"eventName":"new_peer","cid":"%s"}`, cid))
+	return []byte(fmt.Sprintf(`{"type":0,"eventName":"new_peer","data":{"cid":"%s"}}`, cid))
 }
 
 func encodePeersMessage(peerCids []string, mycid string) []byte {
@@ -28,7 +29,22 @@ func encodePeersMessage(peerCids []string, mycid string) []byte {
 		peers += `"` + peerCid + `",`
 	}
 	if len(peers) > 0 {
-		peers = peers[1 : len(peers)-1]
+		peers = peers[0 : len(peers)-1]
 	}
-	return []byte(fmt.Sprintf(`{"type":0,"eventName":"peers","mycid":"%s","peers":[%s]}`, mycid, peers))
+	return []byte(fmt.Sprintf(`{"type":0,"eventName":"peers","data":{"mycid":"%s","peers":[%s]}}`, mycid, peers))
+}
+
+func encodeRemovePeerMessage(cid string) []byte {
+	return []byte(fmt.Sprintf(`{"type":0,"eventName":"remove_peer","data":{"cid":"%s"}}`, cid))
+}
+
+func encodeAnswer(senderCid string, senderSdp string) []byte {
+	return []byte(fmt.Sprintf(`{"type":0,"eventName":"answer","data":{"cid":"%s","sdp":"%s"}}`, senderCid, senderSdp))
+}
+
+func encodeOffer(senderCid string, senderSdp string) []byte {
+	return []byte(fmt.Sprintf(`{"type":0,"eventName":"offer","data":{"cid":"%s","sdp":"%s"}}`, senderCid, senderSdp))
+}
+func encodeIceCandidate(senderCid string, label string, candidate string) []byte {
+	return []byte(fmt.Sprintf(`{"type":0,"eventName":"offer","data":{"cid":"%s","label":"%s","candidate":"%s"}}`, senderCid, label, candidate))
 }
