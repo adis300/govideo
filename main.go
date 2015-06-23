@@ -88,17 +88,17 @@ func handleRtc(room string, clientMessage *simplejson.Json, conn *websocket.Conn
 					switch clientMessage.Get("eventName").MustString() {
 					case "answer":
 						log.Println("Answer received:")
-						if senderSdp := data.Get("sdp").MustString(); len(senderSdp) > 0 {
-							if err := targetConn.WriteMessage(websocket.TextMessage, encodeAnswer(sender.Cid, senderSdp)); err != nil {
+						if senderSdp := data.Get("sdp"); senderSdp != nil {
+							if err := targetConn.WriteMessage(websocket.TextMessage, encodeOfferAnswer("answer", sender.Cid, senderSdp)); err != nil {
 								deleteUser(targetConn, meeting)
 							}
 						}
 					case "offer":
 						log.Println("Offer received:")
 						log.Println(data.Get("sdp").MustString())
-						if senderSdp := data.Get("sdp"); sdp != nil {
+						if senderSdp := data.Get("sdp"); senderSdp != nil {
 							log.Println("Sdp information is available")
-							if err := targetConn.WriteMessage(websocket.TextMessage, encodeOffer(sender.Cid, senderSdp)); err != nil {
+							if err := targetConn.WriteMessage(websocket.TextMessage, encodeOfferAnswer("offer", sender.Cid, senderSdp)); err != nil {
 								deleteUser(targetConn, meeting)
 								log.Println("Offer failed to send")
 							}

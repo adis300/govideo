@@ -19,6 +19,7 @@ app.controller('RoomCtrl', function($scope) {
     var room = path.substring(1);
 
     $scope.localMediaStream = null;
+    $scope.localMediaSrc = "";
     //$scope.fileData = {};
     $scope.peerConns = {}; //peerCid as key
     $scope.peerCids = [];
@@ -55,7 +56,8 @@ app.controller('RoomCtrl', function($scope) {
     };
 
     var handleRtcMessage = function(msg){
-        console.log("Handling a rtc message");
+        console.log("Handling a rtc message:");
+        console.log(msg.eventName);
         var data = msg.data;
         switch (msg.eventName) {
             case "peers":
@@ -88,7 +90,7 @@ app.controller('RoomCtrl', function($scope) {
                 pc.setRemoteDescription(new nativeRTCSessionDescription(data.sdp));
                 pc.createAnswer(function(sessionDesc) {
                     pc.setLocalDescription(sessionDesc);
-                    $scope.sendMessage(
+                    sendMessage(
                         JSON.stringify({
                             type: MESSAGE_TYPES.RTC,
                             eventName: "answer",
@@ -103,6 +105,7 @@ app.controller('RoomCtrl', function($scope) {
                     });
                 break;
             case "answer":
+                console.log("Answer received:");
                 $scope.peerConns[data.cid].setRemoteDescription(
                     new nativeRTCSessionDescription(data.sdp));
                 break;
@@ -195,27 +198,30 @@ app.controller('RoomCtrl', function($scope) {
         });
     };
     $scope.createStream = function(){
-        console.log("Attempting to create stream");
-        if (getUserMedia) {
-            var options = {video: true, audio: true};
-            $scope.numStreams++;
-            getUserMedia.call(navigator, options, function(stream) {
-                $scope.localMediaStream = stream;
-                $scope.initializedStreams++;
-                //TODO: play the created stream
-                if ($scope.initializedStreams === $scope.numStreams) {
-                    console.log("Stream created");
-                    $scope.createPeerConns();
-                    $scope.addStreams();
-                    //$scope.addDataChannels();
-                    $scope.sendOffers();
-                }
-            },function(error) {
-                that.emit("stream_create_error", error);
-            });
-        } else {
-            that.emit("stream_create_error", new Error('WebRTC is not yet supported in this browser.'));
-        }
+        $scope.$apply(function(){
+            console.log("Attempting to create stream:");
+            if (getUserMedia) {
+                var options = {video: true, audio: true};
+                $scope.numStreams++;
+                getUserMedia.call(navigator, options, function(stream) {
+                    $scope.localMediaStream = stream;
+                    $scope.localMediaSrc = URL.createObjectURL(stream);
+                    $scope.initializedStreams++;
+                    //TODO: play the created stream
+                    if ($scope.initializedStreams === $scope.numStreams) {
+                        console.log("Stream created:");
+                        $scope.createPeerConns();
+                        $scope.addStreams();
+                        //$scope.addDataChannels();
+                        $scope.sendOffers();
+                    }
+                },function(error) {
+                    console.log("Stream create error");
+                });
+            } else {
+                that.emit("stream_create_error", new Error('WebRTC is not yet supported in this browser.'));
+            }
+        });
     };
 
     $scope.connect();
@@ -317,16 +323,22 @@ app.controller('RoomCtrl', function($scope) {
 
     // Add local stream to all peers
     $scope.addStreams = function() {
-        $scope.peerCids.forEach(function(peerCid){
-            $scope.peerConns[peerCid].addStream($scope.localMediaStream);
+        $scope.$apply(function(){
+            $scope.peerCids.forEach(function(peerCid){
+                $scope.peerConns[peerCid].addStream($scope.localMediaStream);
+            });
         });
     };
 
     $scope.attachPeerStream = function(stream, cid){
-        console.log("Attaching a peer stream");
-        $scope.peerVideos[cid] = {
-            src: webkitURL.createObjectURL(stream)
-        };
+        $scope.$apply(function(){
+            console.log("Attaching a peer stream");
+            $scope.peerVideos[cid] = {
+                src: URL.createObjectURL(stream)
+            };
+            console.log("Peer videos: ");
+            console.log($scope.peerVideos);
+        });
     };
 
     $scope.localStreamCreated = function(stream){

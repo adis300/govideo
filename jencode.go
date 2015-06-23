@@ -1,23 +1,36 @@
 // This file does not use encoding/json Marshal because we believe string operation is faster;
 package main
 
-import "fmt"
+import (
+	"fmt"
+	"log"
+
+	"github.com/bitly/go-simplejson"
+)
 
 /*
-import "encoding/json"
+type OfferAnswerData struct {
+	Cid string      `json:"cid"`
+	Sdp interface{} `json:"sdp"`
+}
 
-type newPeerJson struct {
-	EventName string `json:"eventName"`
-	Cid       string `json:"cid"`
+type Offer struct {
+	Type      int             `json:"type"`
+	EventName string          `json:"eventName"`
+	Offer     OfferAnswerData `json:"offer"`
+}
+
+type Answer struct {
+	Type      int             `json:"type"`
+	EventName string          `json:"eventName"`
+	Offer     OfferAnswerData `json:"answer"`
 }
 
 func encodeNewPeerMessage(cid string) []byte {
 	s := newPeerJson{EventName: "new_peer", Cid: cid}
     j, _ := json.Marshal(s)z
 	return
-}
-
-*/
+}*/
 
 func encodeNewPeerMessage(cid string) []byte {
 	return []byte(fmt.Sprintf(`{"type":0,"eventName":"new_peer","data":{"cid":"%s"}}`, cid))
@@ -42,13 +55,24 @@ func encodeRemovePeerMessage(cid string) []byte {
 	return []byte(fmt.Sprintf(`{"type":0,"eventName":"remove_peer","data":{"cid":"%s"}}`, cid))
 }
 
-func encodeAnswer(senderCid string, senderSdp string) []byte {
-	return []byte(fmt.Sprintf(`{"type":0,"eventName":"answer","data":{"cid":"%s","sdp":"%s"}}`, senderCid, senderSdp))
+func encodeOfferAnswer(offerOrAnswer string, senderCid string, senderSdp *simplejson.Json) []byte {
+
+	answerData := simplejson.New()
+	answerData.Set("cid", senderCid)
+	answerData.Set("sdp", senderSdp)
+	answerJSON := simplejson.New()
+	answerJSON.Set("type", RTC)
+	answerJSON.Set("eventName", offerOrAnswer)
+	answerJSON.Set("data", answerData)
+	json, err := answerJSON.MarshalJSON()
+	if err != nil {
+		log.Println("Answer json encoding error")
+		return []byte("")
+	}
+	log.Println(string(json))
+	return json
 }
 
-func encodeOffer(senderCid string, senderSdp string) []byte {
-	return []byte(fmt.Sprintf(`{"type":0,"eventName":"offer","data":{"cid":"%s","sdp":"%s"}}`, senderCid, senderSdp))
-}
 func encodeIceCandidate(senderCid string, label string, candidate string) []byte {
 	return []byte(fmt.Sprintf(`{"type":0,"eventName":"offer","data":{"cid":"%s","label":"%s","candidate":"%s"}}`, senderCid, label, candidate))
 }
