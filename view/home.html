@@ -38,8 +38,7 @@ rtcApp.controller('HomeCtrl', function($scope) {
     $scope.showErr = false;
 
     $scope.validateRoom = function($event){
-        var ok = roomRegex.test($scope.meetingRoom);
-        if(!ok) {
+        if(!roomRegex.test($scope.meetingRoom)) {
             $scope.showErr = true;
             $event.preventDefault();
         }

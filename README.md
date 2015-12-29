@@ -1,13 +1,11 @@
 # Go video demo for using webrtc
 
-## The rtckit.js library is adapted from
+* The rtckit.js library is adapted from
 [simplewebrtc.com](https://github.com/andyet/SimpleWebRTC)
 
-with [socket.io](https://github.com/socketio/socket.io/) layer completely removed for golang implementation.
+* **completely removed**[socket.io](https://github.com/socketio/socket.io/) layer for Go implementation.
 
-This demo uses websocket instead.
-
-The actual emit feature is rewritten in rtckit.js with websocket only
+* The actual emit feature from socket.io is rewritten in with websocket only
 
 ## Starting the demo
 * cd into %Your project folder%/govideo
