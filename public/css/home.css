@@ -1,6 +1,5 @@
 body {
 	background: #eeedea;
-	font: 0.813em/1.5 'proxima-nova', Helvetica, sans-serif;
 }
 
 #wrapper {
@@ -13,7 +12,7 @@ body {
 }
 
 h1{
-	margin-bottom: .5em;
+	margin-bottom: .4em;
 }
 
 input[type="text"] {
@@ -40,4 +39,28 @@ input[type="submit"] {
 input[type="submit"]:hover {
 	background: #5078cc;
 	cursor: pointer;
+}
+.error{
+	color: red;
+}
+
+.blink {
+	color: #5078cc;
+	font-size: 16pt;
+	animation: blink 1s steps(5, start) infinite;
+    -webkit-animation: blink 1s steps(5, start) infinite;
+    -moz-animation: blink 1s steps(5, start) infinite;
+    -o-animation: blink 1s steps(5, start) infinite;
+}
+@keyframes blink {
+  to {color: #6699ee; font-weight: bold;}
+}
+@-webkit-keyframes blink {
+  to {color: #6699ee; font-weight: bold;}
+}
+@-moz-keyframes blink {
+  to {color: #6699ee; font-weight: bold;}
+}
+@-o-keyframes blink {
+  to {color: #6699ee; font-weight: bold;}
 }

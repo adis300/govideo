@@ -36,6 +36,7 @@ function shareScreen(){
                 console.log("Error sharing screen");
                 console.error(err);
                 document.getElementById("shareScreenButton").innerHTML = '<img src="../public/img/present.png" alt="Present" width="16" height="16" />';
+                alert("Error sharing screen, Needs to allow screen sharing from your browser");
             } else {
                 console.log("Started sharing screen");
                 document.getElementById("shareScreenButton").innerHTML = '<img src="../public/img/stop-present.png" alt="Stop present" width="16" height="16" />';

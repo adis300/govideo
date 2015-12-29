@@ -19,10 +19,12 @@
 	<div id="wrapper">
 	    <h1>Welcome to Go Video</h1>
 	    <p>A webRTC with golang back-end</p>
-	    {{meetingRoom}}
-	    <form action="{{getMeetingRoom()}}" method="GET">
+	    <p ng-show="meetingRoom">Entering: <span class="blink">{{meetingRoom}}</span><p>
+        <p ng-show="showErr" class="error">Invalid room format use 3~32 alpha numerical chars.</span><p>
+	    <form action="{{enterMeetingRoom()}}" method="GET" ng-submit="validateRoom($event)">
 	        <input ng-model="meetingRoom" type="text" autofocus placeholder="Meeting room"
-	        pattern="[A-Za-z0-9]{3,40}" title="Please enter a valid room">
+	        title="Please enter a valid room">
+            <!--pattern="[A-Za-z0-9]{3,40}" -->
 	        <input type="submit" value="Enter">
 	    </form>
 	</div>
@@ -32,7 +34,20 @@
 var rtcApp = angular.module('app',[]);
 rtcApp.controller('HomeCtrl', function($scope) {
     //$scope.meetingRoom = "";
-    $scope.getMeetingRoom = function() {return "/" + $scope.meetingRoom }
+    var roomRegex = /[a-zA-Z0-9]{3,32}/;
+    $scope.showErr = false;
+
+    $scope.validateRoom = function($event){
+        var ok = roomRegex.test($scope.meetingRoom);
+        if(!ok) {
+            $scope.showErr = true;
+            $event.preventDefault();
+        }
+    }
+
+    $scope.enterMeetingRoom = function() {
+        return "/" + encodeURI($scope.meetingRoom);
+    }
 });
 </script>
 
