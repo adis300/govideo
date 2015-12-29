@@ -1,3 +1,73 @@
-h1{
-    background-color: green
+* {
+	padding: 0;
+	margin: 0;
+}
+
+html, body {
+    width: 100%;
+    height: 100%;
+    font: 0.813em/1.5 'proxima-nova', Helvetica, sans-serif;
+    background: #000000;
+	overflow: hidden;
+}
+.videoContainer {
+    position: absolute;
+    width: 25%;
+	max-width: 200px;
+	min-width: 120px;
+    top: 30px;
+    left: 30px;
+    z-index: 10;
+    background: #ffffff;
+    border-radius:4px;
+    padding: 2px;
+    box-shadow: 0px 1px 10px rgba(0, 0, 0, 0.5);
+}
+.videoContainer video {
+    width: 100%;
+    height: 100%;
+    z-index: 11;
+    display: block;
+    border-radius:4px;
+}
+.remoteVideoContainer{
+    display: inline-block;
+    max-width: 100%;
+    max-height: 100%;
+    z-index: 0;
+    position: relative;
+}
+.remoteVideoContainer video {
+    width: 100%;
+    height: 100%;
+    z-index: 1;
+}
+.control{
+    z-index: 20;
+    position: absolute;
+    bottom: -20px;
+    left: 65px;
+}
+button {
+	text-transform: uppercase;
+	font-weight: 900;
+	background: #f1f1f1;
+	border: none;
+	padding: 10px;
+	font-size: 1.25em;
+	font-family: 'proxima-nova';
+	border-radius: 40px;
+	-moz-border-radius: 20px;
+	-webkit-border-radius: 20px;
+	box-shadow: 0px 1px 5px rgba(0, 0, 0, 0.5);
+	-moz-box-shadow: 0px 1px 5px rgba(0, 0, 0, 0.5);
+	-moz-webkit-shadow: 0px 1px 5px rgba(0, 0, 0, 0.5);
+}
+button:hover {
+	background: #ffffff;
+	cursor: pointer;
+}
+
+button img {
+	display: block;
 }

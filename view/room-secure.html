@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <title>Go Video Room</title>
+    <meta name="viewport" content="width=device-width">
+    <!-- Place favicon.ico and apple-touch-icon.png in the root directory -->
+
+    <!-- Styles -->
+    <link rel="stylesheet" href="public/css/normalize.css">
+    <link rel="stylesheet" href="public/css/room.css">
+    <!-- External JS libs -->
+    <script src="public/js/jquery-2.1.4.min.js"></script>
+    <script src="public/js/rtckit.js"></script>
+</head>
+<body>
+    <div id="localVideoContainer" class="videoContainer">
+        <video id="localVideo"></video>
+        <div class="control">
+        	<button id="muteButton" onclick="mute()"><img src="../public/img/mute.png" alt="Mute" width="16" height="16" /></button>
+			<button id="pauseButton" onclick="pause()"><img src="../public/img/pause.png" alt="Pause" width="16" height="16" /></button>
+            <button id="shareScreenButton" onclick="shareScreen()"><img src="../public/img/present.png" alt="present" width="16" height="16" /></button>
+        </div>
+    </div>
+    <div id="remoteVideos"></div>
+
+    <!-- JS files -->
+    <script src="public/js/room.js"></script>
+    <script src="public/js/videogrid.js"></script>
+
+</body>
+
+</html>

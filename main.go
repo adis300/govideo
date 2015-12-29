@@ -3,153 +3,132 @@ package main
 import (
 	"log"
 	"net/http"
-	"strconv"
 
-	"github.com/bitly/go-simplejson"
-	"github.com/gorilla/mux"
-	"github.com/gorilla/websocket"
-	"github.com/pborman/uuid"
+	"govideo/Godeps/_workspace/src/github.com/bitly/go-simplejson"
+	"govideo/Godeps/_workspace/src/github.com/gorilla/mux"
+	"govideo/Godeps/_workspace/src/github.com/gorilla/websocket"
 )
 
-// Meeting represents information about dogs.
-type Meeting struct {
-	CreatorName string
-	Room        string
-	Locked      bool
-	Users       map[*websocket.Conn]*User
+func getDefaultClientResources() ClientResources {
+	return ClientResources{Screen: false, Video: true, Audio: false}
 }
 
-// User is a struct that has connections;
-type User struct {
-	Cid     string
-	Name    string
-	IsOwner bool
+var roomView = LoadView("room")
+var homeView = LoadView("home")
+var roomSecureView = LoadView("room-secure")
+
+func homeHandler(w http.ResponseWriter, r *http.Request) {
+	// w.Write(LoadView("home")) //Easier for debug
+	w.Write(homeView)
 }
 
-func (meeting *Meeting) getPeerCids() []string {
-	peers := []string{}
-	for _, peer := range meeting.Users {
-		peers = append(peers, peer.Cid)
-	}
-	return peers
-}
-
-func (meeting *Meeting) getConn(cid string) *websocket.Conn {
-	for conn, user := range meeting.Users {
-		if user.Cid == cid {
-			return conn
-		}
-	}
-	return nil
-}
-
-var allMeetings map[string]*Meeting
-
-func entranceHandler(w http.ResponseWriter, r *http.Request) {
-	w.Write(LoadView("home"))
-}
-func meetingHandler(w http.ResponseWriter, r *http.Request) {
+func roomHandler(w http.ResponseWriter, r *http.Request) {
 	roomPath := mux.Vars(r)["room"]
 	log.Println(roomPath)
 	if len(roomPath) < 3 { // roomPath is not available or not valid
 		w.Write([]byte("Invalid room url"))
 	} else {
-		w.Write(LoadView("room"))
+		// w.Write(LoadView("room")) //Easier for debug
+		w.Write(roomView)
 	}
 }
 
-func roomMessageHandler(room string, msg []byte, conn *websocket.Conn) {
-	log.Println("Message received from client:" + room)
-	clientMessage, err := simplejson.NewJson(msg)
+func roomSecureHandler(w http.ResponseWriter, r *http.Request) {
+	roomPath := mux.Vars(r)["room"]
+	log.Println(roomPath)
+	if len(roomPath) < 3 { // roomPath is not available or not valid
+		w.Write([]byte("Invalid room url"))
+	} else {
+		// w.Write(LoadView("room-secure")) //Easier for debug
+		w.Write(roomSecureView)
+	}
+}
+
+func roomMessageHandler(meeting *Meeting, rawMsg []byte, thisConn *websocket.Conn) {
+	log.Println("Event: Message received from client:" + meeting.Room)
+	log.Println(string(rawMsg))
+	clientMessage, err := simplejson.NewJson(rawMsg)
 	if err != nil {
-		log.Println("Json parsing error")
+		log.Println("ERROR: Json parsing error: " + meeting.Room)
 		return
 	}
-	switch clientMessage.Get("type").MustInt() {
-	case RTC:
-		handleRtc(room, clientMessage, conn)
-	case UPDATE_DISPLAY_NAME:
-		updateUserName(room, clientMessage.Get("name").MustString(), conn)
-	case LOCK_ROOM:
-		lockRoom(room, clientMessage.Get("flag").MustBool())
-	default:
-		log.Println("Unknown message received")
-	}
-}
-func handleRtc(room string, clientMessage *simplejson.Json, conn *websocket.Conn) {
-	rtcData := clientMessage.Get("data")
-	rm := rtcData.Get("rm").MustString()
-	if rm == room {
-		if meeting := getMeeting(room); meeting != nil {
-			targetCid := rtcData.Get("cid").MustString()
-			sender := meeting.Users[conn]
-			if sender != nil && len(targetCid) > 0 {
-				if targetConn := meeting.getConn(targetCid); targetConn != nil {
-					switch clientMessage.Get("eventName").MustString() {
-					case "answer":
-						log.Println("Answer received:")
-						if senderSdp := rtcData.Get("sdp"); senderSdp != nil {
-							if err := targetConn.WriteMessage(websocket.TextMessage, encodeOfferAnswer("answer", sender.Cid, senderSdp)); err != nil {
-								deleteUser(targetConn, meeting)
-							}
-						}
-					case "offer":
-						log.Println("Offer received:")
-						log.Println(rtcData.Get("sdp").MustString())
-						if senderSdp := rtcData.Get("sdp"); senderSdp != nil {
-							log.Println("Sdp information is available")
-							if err := targetConn.WriteMessage(websocket.TextMessage, encodeOfferAnswer("offer", sender.Cid, senderSdp)); err != nil {
-								deleteUser(targetConn, meeting)
-								log.Println("Offer failed to send")
-							}
-							log.Println("Offer sent if not failed")
-						}
-					case "ice_candidate":
-						log.Println("Ice candidate received:")
-						label := rtcData.Get("label").MustInt()
-						candidate := rtcData.Get("candidate").MustString()
-						if len(candidate) > 0 {
-							if err := targetConn.WriteMessage(websocket.TextMessage, encodeIceCandidate(sender.Cid, strconv.Itoa(label), candidate)); err != nil {
-								deleteUser(targetConn, meeting)
-							}
-						}
-					default:
-						log.Println("Unknown rtc message")
-					}
+	if thisClient := meeting.Clients[thisConn]; thisClient != nil {
+		switch clientMessage.Get("event").MustString() {
+		case "join":
+			if rm := clientMessage.Get("data").MustString(); rm == meeting.Room {
+				// Send a join message with room description
+				if err := thisConn.WriteMessage(websocket.TextMessage, meeting.describeMeeting(thisConn)); err != nil {
+					log.Println("ERROR: sending join message with room description")
+					meeting.removeClient(thisConn)
 				}
+			} else {
+				log.Println("WARNING: Might be a hack! room to join is different!")
 			}
+		case "message":
+			if details := clientMessage.Get("data"); details != nil {
+				if to := details.Get("to").MustString(); len(to) > 0 {
+					if otherClientConn := meeting.getConn(to); otherClientConn != nil {
+						details.Set("from", thisClient.SessionID)
+						clientMessage.Set("data", details)
+						newMsg, err := clientMessage.MarshalJSON()
+						if err != nil {
+							log.Println("Forwarding Message: Marshal json error!")
+							return
+						}
+						if err := otherClientConn.WriteMessage(websocket.TextMessage, newMsg); err != nil {
+							log.Println("Forwarding Message socket error!")
+							return
+						}
+					} else {
+						log.Println("ERROR: No target connection found!")
+					}
+				} else {
+					log.Println("ERROR: No ~to~ attribute specified in data!")
+				}
+			} else {
+				log.Println("ERROR: No data field in raw message")
+			}
+		case "shareScreen":
+			thisClient.Resources.Screen = true
+		case "unshareScreen":
+			thisClient.Resources.Screen = false
+			meeting.removeFeed(thisConn, "screen")
+		case "leave":
+			meeting.removeClient(thisConn)
+		case "disconnect":
+			meeting.removeClient(thisConn)
+		case "trace": // Log all the bugs
+			log.Println("Trace:")
+			log.Println(clientMessage.Get("data").MarshalJSON())
+		// case "create":
+		// case "join"
+		default:
+			log.Println("ERROR: Unknown message received")
 		}
-	} else {
-		log.Println("Invalid room from socket. May be a hack!")
 	}
 
 }
 
-func updateUserName(room string, newName string, conn *websocket.Conn) {
-	log.Println("Broadcast new name to all other connections")
-}
-
-func lockRoom(room string, lockFlag bool) {
-	if lockFlag {
-		log.Println("Broadcast a lock message")
-	} else {
-		log.Println("Broadcast an unlock message")
+func lockRoom(meeting *Meeting, lockFlag bool) {
+	//lockRoom(meeting, clientMessage.Get("flag").MustBool())
+	if meeting.Locked != lockFlag {
+		meeting.Locked = lockFlag
+		// TODO broadcast a lock state change message;
+		log.Println("Meeting lock state changed for: " + meeting.Room)
 	}
 }
 
 func socketHandler(w http.ResponseWriter, r *http.Request) {
 	roomPath := mux.Vars(r)["room"]
 	conn, err := websocket.Upgrade(w, r, nil, 1024, 1024)
-	defer removeConnection(conn, roomPath) // Gauranteed removal of a connection
+	defer removeConnectionFromRoom(conn, roomPath) // Gauranteed removal of a connection
 	if err == nil {
 		if len(roomPath) > 2 {
-			isOwner := false
-			displayName := "Test name"
-			_ = addUserToRoom(roomPath, conn, displayName, isOwner)
+			meeting := addClientToRoom(roomPath, conn)
 			for {
 				_, msg, readErr := conn.ReadMessage()
 				if readErr == nil {
-					roomMessageHandler(roomPath, msg, conn)
+					roomMessageHandler(meeting, msg, conn)
 				} else {
 					log.Println("Socket read error(This socket might be dropped):")
 					log.Println(readErr)
@@ -158,110 +137,53 @@ func socketHandler(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 	} else {
-		log.Println("Socket connection error: ")
+		log.Println("ERROR: Socket connection error: ")
 		log.Println(err)
 	}
 }
 
-func getMeeting(room string) *Meeting {
-	return allMeetings[room]
-}
-
-func createUser(name string, isOwner bool) *User {
-	cid := uuid.NewRandom().String()
-	return &User{Cid: cid, Name: name, IsOwner: isOwner}
-}
-
-func addUserToRoom(room string, conn *websocket.Conn, name string, isOwner bool) *Meeting {
-	meeting := getMeeting(room)
-	user := createUser(name, isOwner)
-	if meeting == nil {
-		meeting = createMeeting(room, conn, user)
-		if er := conn.WriteMessage(websocket.TextMessage, encodePeersMessage(nil, user.Cid)); er != nil {
-			conn.Close()
-		}
-	} else {
-		log.Println("Meeting found: " + room)
-		if er := conn.WriteMessage(websocket.TextMessage, encodePeersMessage(meeting.getPeerCids(), user.Cid)); er != nil {
-			conn.Close()
-		}
-		for userConnection := range meeting.Users {
-			if err := userConnection.WriteMessage(websocket.TextMessage, encodeNewPeerMessage(user.Cid)); err != nil {
-				deleteUser(userConnection, meeting)
-			}
-		}
-		meeting.Users[conn] = user
-		log.Println("User added")
-	}
-
-	return meeting
-}
-
-func deleteUser(conn *websocket.Conn, meeting *Meeting) {
-	defer conn.Close()
-	delete(meeting.Users, conn)
-	if len(meeting.Users) > 0 {
-		for userConnection, user := range meeting.Users {
-			if err := userConnection.WriteMessage(websocket.TextMessage, encodeRemovePeerMessage(user.Cid)); err != nil {
-				deleteUser(userConnection, meeting)
-			}
-		}
-	} else {
-		delete(allMeetings, meeting.Room)
-	}
-}
-
-func removeConnection(conn *websocket.Conn, room string) {
-	meeting := getMeeting(room)
-	if meeting == nil {
-		conn.Close()
-	} else {
-		deleteUser(conn, meeting)
-	}
-}
-
-func createMeeting(room string, conn *websocket.Conn, user *User) *Meeting {
-	users := make(map[*websocket.Conn]*User)
-	users[conn] = user
-	var meeting *Meeting
-	if user.IsOwner {
-		meeting = &Meeting{CreatorName: user.Name, Room: room, Locked: false, Users: users}
-	} else {
-		meeting = &Meeting{CreatorName: "", Room: room, Locked: false, Users: users}
-	}
-	allMeetings[room] = meeting
-	log.Println("Meeting created: " + room)
-	return meeting
-}
-
+/*
 func init() {
 	allMeetings = make(map[string]*Meeting)
-}
-
-func testHandler(w http.ResponseWriter, r *http.Request) {
-	roomPath := mux.Vars(r)["room"]
-	log.Println(roomPath)
-	if len(roomPath) < 3 { // roomPath is not available or not valid
-		w.Write([]byte("Invalid room url"))
-	} else {
-		w.Write(LoadView("test"))
-	}
-}
+}*/
 
 func main() {
 	// handle all requests by serving a file of the same name
 	fileServer := http.FileServer(http.Dir("public"))
 
 	router := mux.NewRouter()
-	router.HandleFunc("/", entranceHandler)
-	router.HandleFunc("/{room}", testHandler)
-	//router.HandleFunc("/{room}", meetingHandler)
+	router.HandleFunc("/", homeHandler)
+
+	if SERVE_SECURE {
+		router.HandleFunc("/{room}", roomSecureHandler)
+	} else {
+		router.HandleFunc("/{room}", roomHandler)
+	}
+
 	router.PathPrefix("/public").Handler(http.StripPrefix("/public", fileServer))
 	router.HandleFunc("/ws/{room}", socketHandler)
+
 	http.Handle("/", router)
 
-	log.Println("serving")
-	if err := http.ListenAndServe(PORT, nil); err != nil {
-		log.Fatal("ListenAndServe:", err)
+	log.Println("APP: Serving on" + PORT)
+	log.Println("APP: Go to localhost" + PORT)
+
+	if SERVE_SECURE {
+		go func() {
+			log.Println("HTTP redirecting on port:" + PORT)
+			httpErr := http.ListenAndServe(PORT, secureRedirectHandler(http.StatusFound))
+			if httpErr != nil {
+				panic("ERROR: " + httpErr.Error())
+			}
+		}()
+		log.Println("APP: Security is on using HTTPS")
+		if err := http.ListenAndServeTLS(PORT_SECURE, "ssl/cert.crt", "ssl/server.key", nil); err != nil {
+			log.Fatal("ERROR: ListenAndServeTLS:", err)
+		}
+	} else {
+		if err := http.ListenAndServe(PORT, nil); err != nil {
+			log.Fatal("ERROR: ListenAndServe:", err)
+		}
 	}
+
 }
