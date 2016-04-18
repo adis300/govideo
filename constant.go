@@ -1,7 +1,7 @@
 package main
 
 const PORT = ":8000"
-const PORT_SECURE = ":8080"
+const PORT_SECURE = ":8081"
 const SERVE_SECURE = true
 
 // EMAIL_RGX will only fit 99% of all emails...

@@ -35,17 +35,22 @@ function shareScreen(){
                 sharingScreen = false;
                 console.log("Error sharing screen");
                 console.error(err);
-                document.getElementById("shareScreenButton").innerHTML = '<img src="../public/img/present.png" alt="Present" width="16" height="16" />';
-                alert("Error sharing screen, Needs to allow screen sharing from your browser");
+                document.getElementById("shareScreenButton").innerHTML = '<img src="../public/img/present.png" alt="Play" width="16" height="16" />';
             } else {
                 console.log("Started sharing screen");
-                document.getElementById("shareScreenButton").innerHTML = '<img src="../public/img/stop-present.png" alt="Stop present" width="16" height="16" />';
+                document.getElementById("shareScreenButton").innerHTML = '<img src="../public/img/stop-present.png" alt="Play" width="16" height="16" />';
             }
         });
     }else{
-        console.log("Stopsed sharing screen");
+        console.log("Stoped sharing screen");
         webrtc.stopScreenShare();
-        document.getElementById("shareScreenButton").innerHTML = '<img src="../public/img/present.png" alt="Present" width="16" height="16" />';
+        document.getElementById("shareScreenButton").innerHTML = '<img src="../public/img/present.png" alt="Play" width="16" height="16" />';
+
+        // Remove screen share previews
+        var screenContainer = document.getElementById("localScreenContainer");
+        while(screenContainer.firstChild) {
+            screenContainer.removeChild(screenContainer.firstChild);
+        }
     }
 }
 
@@ -59,6 +64,7 @@ var webrtc = new SimpleWebRTC({
     localVideoEl: 'localVideo',
     remoteVideosEl: 'remotes',
     autoRequestMedia: true,
+    autoRemoveVideos: true,
     url: document.location.protocol +'//' + document.location.host,
     wsUrl: secureLink? 'wss://' + document.location.host : 'ws://' + document.location.host
 }, room);
@@ -99,6 +105,11 @@ webrtc.on('videoRemoved', function (video, peer) {
             videoIndices.id = undefined;
         updateVideoLocations();
     }
+});
+
+webrtc.on('localScreenAdded', function (video) {
+    var screenContainer = document.getElementById("localScreenContainer");
+    screenContainer.appendChild(video);
 });
 
 webrtc.on('readyToCall', function () {

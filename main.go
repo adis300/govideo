@@ -4,9 +4,9 @@ import (
 	"log"
 	"net/http"
 
-	"govideo/Godeps/_workspace/src/github.com/bitly/go-simplejson"
-	"govideo/Godeps/_workspace/src/github.com/gorilla/mux"
-	"govideo/Godeps/_workspace/src/github.com/gorilla/websocket"
+	"github.com/bitly/go-simplejson"
+	"github.com/gorilla/mux"
+	"github.com/gorilla/websocket"
 )
 
 func getDefaultClientResources() ClientResources {

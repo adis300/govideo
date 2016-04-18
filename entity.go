@@ -2,8 +2,8 @@ package main
 
 // Meeting represents information about dogs.
 import (
-	"govideo/Godeps/_workspace/src/github.com/bitly/go-simplejson"
-	"govideo/Godeps/_workspace/src/github.com/gorilla/websocket"
+	"github.com/bitly/go-simplejson"
+	"github.com/gorilla/websocket"
 )
 
 // Client is a struct that has connections;

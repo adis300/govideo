@@ -3,8 +3,8 @@ package main
 import (
 	"log"
 
-	"govideo/Godeps/_workspace/src/github.com/gorilla/websocket"
-	"govideo/Godeps/_workspace/src/github.com/pborman/uuid"
+	"github.com/gorilla/websocket"
+	"github.com/pborman/uuid"
 )
 
 var allMeetings = make(map[string]*Meeting)
