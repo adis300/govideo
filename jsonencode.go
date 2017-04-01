@@ -6,7 +6,9 @@ import "fmt"
 // Encoding with string formatter for simple json messages (lighter weight & faster)
 
 func getConnectMessage(sessionid string) []byte {
-	// Currently no turnservers
+	if len(TURN) == 0 {
+		return []byte(fmt.Sprintf(`{"event":"connect","data":{"sessionid":"%s","stunservers":[{"url":"%s"}],"turnservers":[]}}`, sessionid, STUN))
+	}
 	return []byte(fmt.Sprintf(`{"event":"connect","data":{"sessionid":"%s","stunservers":[{"url":"%s"}],"turnservers":[]}}`, sessionid, STUN))
 }
 
