@@ -45,7 +45,8 @@ func roomSecureHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func roomMessageHandler(meeting *Meeting, rawMsg []byte, thisConn *websocket.Conn) {
-	log.Println("Event: Message received from client:" + meeting.Room)
+	var clientSession = meeting.Clients[thisConn].SessionID
+	log.Println("Event: Message received from client:" + meeting.Room + ":" + clientSession)
 	log.Println(string(rawMsg))
 	clientMessage, err := simplejson.NewJson(rawMsg)
 	if err != nil {
