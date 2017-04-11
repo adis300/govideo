@@ -1,17 +1,21 @@
 package main
 
 import (
-	"log"
-	"net/http"
-
+	"flag"
 	"github.com/bitly/go-simplejson"
 	"github.com/gorilla/mux"
 	"github.com/gorilla/websocket"
+	"log"
+	"net/http"
+	"strconv"
 )
 
 func getDefaultClientResources() ClientResources {
 	return ClientResources{Screen: false, Video: true, Audio: false}
 }
+
+var portStr = ""
+var portSecureStr = ""
 
 var roomView = LoadView("room")
 var homeView = LoadView("home")
@@ -149,6 +153,13 @@ func init() {
 }*/
 
 func main() {
+	port := flag.Int("port", PORT, "The http port this server runs on.")
+	portSecure := flag.Int("portSecure", PORT_SECURE, "The https port this server runs on.")
+	enableSecurity := flag.Bool("secure", SERVE_SECURE, "Determine if server runs on https.")
+	flag.Parse()
+
+	portStr = ":" + strconv.Itoa(*port)
+	portSecureStr = ":" + strconv.Itoa(*portSecure)
 	// handle all requests by serving a file of the same name
 	fileServer := http.FileServer(http.Dir("public"))
 
@@ -166,23 +177,22 @@ func main() {
 
 	http.Handle("/", router)
 
-	log.Println("APP: Serving on" + PORT)
-	log.Println("APP: Go to localhost" + PORT)
+	log.Println("APP: Serving on " + portStr)
 
-	if SERVE_SECURE {
+	if *enableSecurity {
 		go func() {
-			log.Println("HTTP redirecting on port:" + PORT)
-			httpErr := http.ListenAndServe(PORT, secureRedirectHandler(http.StatusFound))
+			log.Println("APP: HTTP redirecting on port:" + portStr)
+			httpErr := http.ListenAndServe(portStr, secureRedirectHandler(http.StatusFound))
 			if httpErr != nil {
 				panic("ERROR: " + httpErr.Error())
 			}
 		}()
-		log.Println("APP: Security is on using HTTPS")
-		if err := http.ListenAndServeTLS(PORT_SECURE, "ssl/cert.crt", "ssl/server.key", nil); err != nil {
+		log.Println("APP: Securely server HTTPs on port:" + portSecureStr)
+		if err := http.ListenAndServeTLS(portSecureStr, "ssl/cert.crt", "ssl/server.key", nil); err != nil {
 			log.Fatal("ERROR: ListenAndServeTLS:", err)
 		}
 	} else {
-		if err := http.ListenAndServe(PORT, nil); err != nil {
+		if err := http.ListenAndServe(portStr, nil); err != nil {
 			log.Fatal("ERROR: ListenAndServe:", err)
 		}
 	}

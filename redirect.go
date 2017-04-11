@@ -27,7 +27,7 @@ func (rh *secureHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		oldpath = "/"
 	}
 	// Use oldHost value to be the new url
-	newUrl := "https://" + strings.Replace(r.Host, PORT, PORT_SECURE, 1) + oldpath // Replace one instance
+	newUrl := "https://" + strings.Replace(r.Host, portStr, portSecureStr, 1) + oldpath // Replace one instance
 	w.Header().Set("Location", newUrl)
 	w.WriteHeader(rh.code)
 	// RFC2616 recommends that a short note "SHOULD" be included in the

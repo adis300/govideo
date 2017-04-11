@@ -9,7 +9,7 @@
 
 ## Starting the demo
 * cd into %Your project folder%/govideo
-* run `./govideo` if you are a mac user
+* run `./govideo -port=8080 -portSecure=8443 -secure` if you are a mac user
 * **for Win & Linux** make sure you have golang properly installed and run `go build` before running the app
 * Visit `localhost:8000` or `localhost:8080`
 * Enter a room name and start webRTC

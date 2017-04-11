@@ -1,7 +1,8 @@
 package main
 
-const PORT = ":8000"
-const PORT_SECURE = ":8081"
+const PORT = 8080
+const PORT_SECURE = 8443
+
 const SERVE_SECURE = true
 
 // EMAIL_RGX will only fit 99% of all emails...
@@ -10,7 +11,7 @@ const EMAIL_RGX = `(?i)[A-Z0-9._%+-]+@(?:[A-Z0-9-]+\.)+[A-Z]{2,6}`
 const INVALID_ROOM = 9
 const STUN = "stun:stun.l.google.com:19302"
 
-const TURN = "" //"turn:turn.votebin.com:3478" 
+const TURN = "" //"turn:turn.votebin.com:3478"
 /*
 func getStunServers() []byte {
 
