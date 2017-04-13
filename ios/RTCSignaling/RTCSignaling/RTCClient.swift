@@ -10,7 +10,7 @@ import UIKit
 import WebRTC
 
 
-public class RTCClient: NSObject {
+@objc public class RTCClient: NSObject {
     
     public static let shared = RTCClient()
     
@@ -119,6 +119,20 @@ public class RTCClient: NSObject {
     
     public func setVideo(on: Bool){
         localVideoTrack?.isEnabled = on && !RTCClientConfig.audioOnly
+    }
+    
+    public func setAudioOutput(useSpeaker: Bool){
+        do{
+            if useSpeaker {
+                try AVAudioSession.sharedInstance().overrideOutputAudioPort(.speaker)
+            }else{
+                try AVAudioSession.sharedInstance().overrideOutputAudioPort(.none)
+            }
+            
+        }catch{
+            print(error.localizedDescription)
+        }
+        
     }
     
     public func setLocalVideoContainer(view: UIView){
@@ -316,7 +330,7 @@ extension RTCClient {
     
     fileprivate func reset(){
         
-        RTCClientConfig.setAudioOutput(useSpeaker: nil)
+        setAudioOutput(useSpeaker: RTCClientConfig.DEFAULT_USE_SPEAKER)
 
         for (_, peer) in peers{
             if let stream = localMediaStream {
@@ -456,7 +470,7 @@ extension RTCPeer: RTCPeerConnectionDelegate{
     }
 }
 
-public class RTCPeer: NSObject {
+@objc public class RTCPeer: NSObject {
     
     private(set) public var peerConnection: RTCPeerConnection!
     private(set) public var peerId: String

@@ -9,7 +9,7 @@
 import Foundation
 import WebRTC
 
-public class RTCClientConfig {
+@objc public class RTCClientConfig:NSObject {
     
     private(set) public static var DEFAULT_STUN_SERVER_URL = "stun:stun.l.google.com:19302"
     private(set) public static var DEFAULT_TURN_SERVER_URL = "https://turn.votebin.com"
@@ -87,31 +87,6 @@ public class RTCClientConfig {
             RTCClientConfig.rtcConfiguration.iceServers = [RTCIceServer(urlStrings: [RTCClientConfig.DEFAULT_STUN_SERVER_URL])]
         }
         return RTCClientConfig.rtcConfiguration
-    }
-    
-    public static func setAudioOutput(useSpeaker: Bool?){
-        do{
-            var use: Bool = false
-            if let useSpeaker = useSpeaker{
-                if useSpeaker{
-                    use = true
-                }
-            }else{
-                if RTCClientConfig.DEFAULT_USE_SPEAKER {
-                    use = true
-                }
-            }
-            
-            if use {
-                try AVAudioSession.sharedInstance().overrideOutputAudioPort(.speaker)
-            }else{
-                try AVAudioSession.sharedInstance().overrideOutputAudioPort(.none)
-            }
-            
-        }catch{
-            print(error.localizedDescription)
-        }
-        
     }
 
 }
@@ -191,31 +166,31 @@ class RTCFactory{
     }
 }
 
-public protocol RTCClientDelegate {
+@objc public protocol RTCClientDelegate {
     
     func rtcClientDidSetLocalMediaStream(client: RTCClient, authorized: Bool, audioOnly: Bool)
 
     func rtcClientDidAddRemoteMediaStream(peer: RTCPeer, stream: RTCMediaStream, audioOnly: Bool)
     
     // Optional peer delegate methods
-    func rtcRemotePeerDidChangeAudioState(peer: RTCPeer, on: Bool)
+    @objc optional func rtcRemotePeerDidChangeAudioState(peer: RTCPeer, on: Bool)
     
-    func rtcRemotePeerDidChangeVideoState(peer: RTCPeer, on: Bool)
+    @objc optional func rtcRemotePeerDidChangeVideoState(peer: RTCPeer, on: Bool)
 
-    func rtcRemotePeerFailedToGenerateIceCandidate(peer: RTCPeer)
+    @objc optional func rtcRemotePeerFailedToGenerateIceCandidate(peer: RTCPeer)
 }
 
 // Default optional delegate methods
 extension RTCClientDelegate{
-    public func rtcRemotePeerDidChangeAudioState(peer: RTCPeer, on: Bool){
+    func rtcRemotePeerDidChangeAudioState(peer: RTCPeer, on: Bool){
         print("RTCClientDelegate:rtcRemotePeerDidChangeAudioState:empty")
     }
     
-    public func rtcRemotePeerDidChangeVideoState(peer: RTCPeer, on: Bool){
+    func rtcRemotePeerDidChangeVideoState(peer: RTCPeer, on: Bool){
         print("RTCClientDelegate:rtcRemotePeerDidChangeVideoState:empty")
     }
     
-    public func rtcRemotePeerFailedToGenerateIceCandidate(peer: RTCPeer){
+    func rtcRemotePeerFailedToGenerateIceCandidate(peer: RTCPeer){
         print("RTCClientDelegate:rtcFailedToGenerateIce:empty")
     }
 }

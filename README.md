@@ -28,3 +28,6 @@ Privacy - Microphone Usage Description    : You reason
 Also disable bitcode of your project
 
 ```
+
+* Cross compiling
+env GOOS=linux GOARCH=386 go build -v govideo
