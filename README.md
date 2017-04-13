@@ -20,3 +20,11 @@ For firefox open: about:config   search screensharing and add localhost:8080 to 
 
 * For chrome
 Screen sharing plugin is needed.
+
+* For creating iOS Client don't forget to add the following permissions
+```
+Privacy - Camera Usage Description    : Your reason
+Privacy - Microphone Usage Description    : You reason
+Also disable bitcode of your project
+
+```
