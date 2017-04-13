@@ -53,43 +53,48 @@ import WebRTC
     
     public func connect(serverUrl:String, roomId: String, delegate: RTCClientDelegate){
         
-        reset()
-
-        self.delegate = delegate
-        
-        self.localMediaStream = RTCFactory.getPeerConnectionFactory().mediaStream(withStreamId: RTCClientConfig.localMediaStreamId)
-        
-        // Initialize audio track
-        localAudioTrack = RTCFactory.getPeerConnectionFactory().audioTrack(withTrackId: RTCClientConfig.localAudioTrackId)
-        localMediaStream?.addAudioTrack(localAudioTrack!)
-        
-        // let audioDevice = AVCaptureDevice.defaultDevice(withDeviceType: .builtInMicrophone, mediaType: AVMediaTypeAudio, position: .unspecified)
-                
-        if RTCClientConfig.audioOnly{
-            delegate.rtcClientDidSetLocalMediaStream(client: self, authorized: true, audioOnly: RTCClientConfig.audioOnly)
-            self.socketConnect(serverUrl: serverUrl, roomId: roomId)
-        }else{
+        if !sessionReady {
+            reset()
             
-            let authStatus = AVCaptureDevice.authorizationStatus(forMediaType: AVMediaTypeVideo)
-            if authStatus == .restricted || authStatus == .denied {
-                print("RTCClient:Initialize:Camera authorization denied");
-                delegate.rtcClientDidSetLocalMediaStream(client: self, authorized: false, audioOnly: RTCClientConfig.audioOnly)
+            self.delegate = delegate
+            
+            self.localMediaStream = RTCFactory.getPeerConnectionFactory().mediaStream(withStreamId: RTCClientConfig.localMediaStreamId)
+            
+            // Initialize audio track
+            localAudioTrack = RTCFactory.getPeerConnectionFactory().audioTrack(withTrackId: RTCClientConfig.localAudioTrackId)
+            localMediaStream?.addAudioTrack(localAudioTrack!)
+            
+            // let audioDevice = AVCaptureDevice.defaultDevice(withDeviceType: .builtInMicrophone, mediaType: AVMediaTypeAudio, position: .unspecified)
+            
+            if RTCClientConfig.audioOnly{
+                delegate.rtcClientDidSetLocalMediaStream(client: self, authorized: true, audioOnly: RTCClientConfig.audioOnly)
+                self.socketConnect(serverUrl: serverUrl, roomId: roomId)
             }else{
                 
-                if let _ = AVCaptureDevice.defaultDevice(withDeviceType: .builtInWideAngleCamera, mediaType: AVMediaTypeVideo, position: .back){
-                    let videoSource = RTCFactory.getPeerConnectionFactory().avFoundationVideoSource(with: RTCFactory.getMediaConstraints(receiveMedia: nil))
-                    localVideoTrack = RTCFactory.getPeerConnectionFactory().videoTrack(with: videoSource, trackId: RTCClientConfig.localVideoTrackId)
-                    localMediaStream?.addVideoTrack(localVideoTrack!)
-                    
-                    delegate.rtcClientDidSetLocalMediaStream(client: self, authorized: true, audioOnly: RTCClientConfig.audioOnly)
-                    self.socketConnect(serverUrl: serverUrl, roomId: roomId)
-                }else{
-                    print("RTCClient:Initialize:Camera unavailable on this device");
+                let authStatus = AVCaptureDevice.authorizationStatus(forMediaType: AVMediaTypeVideo)
+                if authStatus == .restricted || authStatus == .denied {
+                    print("RTCClient:Initialize:Camera authorization denied");
                     delegate.rtcClientDidSetLocalMediaStream(client: self, authorized: false, audioOnly: RTCClientConfig.audioOnly)
+                }else{
+                    
+                    if let _ = AVCaptureDevice.defaultDevice(withDeviceType: .builtInWideAngleCamera, mediaType: AVMediaTypeVideo, position: .back){
+                        let videoSource = RTCFactory.getPeerConnectionFactory().avFoundationVideoSource(with: RTCFactory.getMediaConstraints(receiveMedia: nil))
+                        localVideoTrack = RTCFactory.getPeerConnectionFactory().videoTrack(with: videoSource, trackId: RTCClientConfig.localVideoTrackId)
+                        localMediaStream?.addVideoTrack(localVideoTrack!)
+                        
+                        delegate.rtcClientDidSetLocalMediaStream(client: self, authorized: true, audioOnly: RTCClientConfig.audioOnly)
+                        self.socketConnect(serverUrl: serverUrl, roomId: roomId)
+                    }else{
+                        print("RTCClient:Initialize:Camera unavailable on this device");
+                        delegate.rtcClientDidSetLocalMediaStream(client: self, authorized: false, audioOnly: RTCClientConfig.audioOnly)
+                    }
+                    
                 }
-
             }
+        }else{
+            print("WARNING:RTCClient:connect:Socket session already established")
         }
+        
         
     }
     
@@ -361,13 +366,14 @@ extension RTCClient {
 
 
 extension RTCClient: WebSocketDelegate{
-    public func websocketDidConnect(socket: WebSocket){
+    func websocketDidConnect(socket: WebSocket){
         print("Did connect")
     }
-    public func websocketDidDisconnect(socket: WebSocket, error: NSError?){
+    func websocketDidDisconnect(socket: WebSocket, error: NSError?){
         print("Did disconnect")
+        disconect()
     }
-    public func websocketDidReceiveMessage(socket: WebSocket, text: String){
+    func websocketDidReceiveMessage(socket: WebSocket, text: String){
         if let data = text.data(using: .utf8){
             let json = JSON(data: data)
             handleServerMessage(msg: json)
@@ -377,7 +383,7 @@ extension RTCClient: WebSocketDelegate{
         }
     }
     
-    public func websocketDidReceiveData(socket: WebSocket, data: Data){
+    func websocketDidReceiveData(socket: WebSocket, data: Data){
         print("Received some data \(data.count)")
     }
     

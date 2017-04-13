@@ -27,14 +27,14 @@ public let WebsocketDidConnectNotification = "WebsocketDidConnectNotification"
 public let WebsocketDidDisconnectNotification = "WebsocketDidDisconnectNotification"
 public let WebsocketDisconnectionErrorKeyName = "WebsocketDisconnectionErrorKeyName"
 
-public protocol WebSocketDelegate: class {
+protocol WebSocketDelegate: class {
     func websocketDidConnect(socket: WebSocket)
     func websocketDidDisconnect(socket: WebSocket, error: NSError?)
     func websocketDidReceiveMessage(socket: WebSocket, text: String)
     func websocketDidReceiveData(socket: WebSocket, data: Data)
 }
 
-public protocol WebSocketPongDelegate: class {
+protocol WebSocketPongDelegate: class {
     func websocketDidReceivePong(socket: WebSocket, data: Data?)
 }
 
@@ -111,10 +111,10 @@ open class WebSocket : NSObject, StreamDelegate {
 
     /// Responds to callback about new messages coming in over the WebSocket
     /// and also connection/disconnect messages.
-    public weak var delegate: WebSocketDelegate?
+    weak var delegate: WebSocketDelegate?
 
     /// Receives a callback for each pong message recived.
-    public weak var pongDelegate: WebSocketPongDelegate?
+    weak var pongDelegate: WebSocketPongDelegate?
 
 
     // MARK: - Block based API.
