@@ -67,6 +67,7 @@ import WebRTC
                 
         if RTCClientConfig.audioOnly{
             delegate.rtcClientDidSetLocalMediaStream(client: self, authorized: true, audioOnly: RTCClientConfig.audioOnly)
+            self.socketConnect(serverUrl: serverUrl, roomId: roomId)
         }else{
             
             let authStatus = AVCaptureDevice.authorizationStatus(forMediaType: AVMediaTypeVideo)
