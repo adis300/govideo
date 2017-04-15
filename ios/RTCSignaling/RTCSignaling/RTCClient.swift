@@ -497,6 +497,8 @@ extension RTCPeer: RTCPeerConnectionDelegate{
     
     fileprivate var remoteVideoRenderer: RTCEAGLVideoView?
     
+    private var dataChannel:RTCDataChannel?
+    
     private func getReceiveMedia () -> [String: Any]{
         
         var receiveMedia:[String: Any] = [:]
@@ -578,7 +580,8 @@ extension RTCPeer: RTCPeerConnectionDelegate{
         }
         
         if (self.enableDataChannels) {
-            let dataChannel = peerConnection.dataChannel(forLabel: "simplewebrtc", configuration: RTCClientConfig.dataChannelConfiguration)
+            dataChannel = peerConnection.dataChannel(forLabel: RTCClientConfig.dataChannelLabel, configuration: RTCClientConfig.dataChannelConfiguration)
+            dataChannel?.delegate = self
             // TODO: Make use of dataChannel
         }
     }
@@ -709,5 +712,30 @@ extension RTCPeer: RTCPeerConnectionDelegate{
             assertionFailure("RTCPeer:handleMessage: unknown message type")
         }
     }
+}
+
+// Implementation of RTCDataChannelDelegate on RTCClient
+extension RTCPeer: RTCDataChannelDelegate {
+    
+    /** The data channel state changed. */
+    public func dataChannelDidChangeState(_ dataChannel: RTCDataChannel){
+        switch dataChannel.readyState {
+        case .open:
+            print("RTCPeer:RTCDataChannelDelegate:Data channel is open")
+        case .closing:
+            print("RTCPeer:RTCDataChannelDelegate:Data channel is closing")
+        case .closed:
+            print("RTCPeer:RTCDataChannelDelegate:Data channel is closed")
+        case .connecting:
+            print("RTCPeer:RTCDataChannelDelegate:Data channel is connecting")
+        }
+    }
+    
+    
+    /** The data channel successfully received a data buffer. */
+    public func dataChannel(_ dataChannel: RTCDataChannel, didReceiveMessageWith buffer: RTCDataBuffer){
+        //TODO: impl reading msg from buffer
+    }
+    
 }
 

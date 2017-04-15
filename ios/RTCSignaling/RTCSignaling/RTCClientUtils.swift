@@ -18,7 +18,6 @@ import WebRTC
     private(set) public static var DEFAULT_ENABLE_DATA_CHANNELS = true
     private(set) public static var DEFAULT_USE_SPEAKER = true
 
-
     private(set) public static var validateSsl = false
     
     private(set) public static var audioOnly = false
@@ -31,6 +30,7 @@ import WebRTC
     private(set) static var localMediaStreamId = "local_stream"
     private(set) static var localAudioTrackId = "local_audio"
     private(set) static var localVideoTrackId = "local_video"
+    private(set) static var dataChannelLabel = "simplewebrtc"
     // static let peerVolumeWhenSpeaking = 0.25
     
     // If loopback
