@@ -404,13 +404,17 @@ extension RTCPeer: RTCPeerConnectionDelegate{
             remoteVideoTrack = stream.videoTracks.first
         }
         DispatchQueue.main.async {
-            self.parent.delegate?.rtcClientDidAddRemoteMediaStream(peer: self, stream: stream, audioOnly: RTCClientConfig.audioOnly)
+            self.parent.delegate?.rtcClientDidAddRemoteMediaStream(client: self.parent, peer: self, stream: stream, audioOnly: RTCClientConfig.audioOnly)
         }
     }
     
     /** Called when a remote peer closes a stream. */
     public func peerConnection(_ peerConnection: RTCPeerConnection, didRemove stream: RTCMediaStream){
         print("DEBUG:RTCPeer:RTCPeerConnectionDelegate: peer connection did remove stream")
+        parent.removePeer(peerId: peerId)
+        DispatchQueue.main.async {
+            self.parent.delegate?.rtcClientDidRemoveRemoteMediaStream(client: self.parent, peer: self, stream: stream, audioOnly: RTCClientConfig.audioOnly)
+        }
     }
     
     /** Called when negotiation is needed, for example ICE has restarted. */

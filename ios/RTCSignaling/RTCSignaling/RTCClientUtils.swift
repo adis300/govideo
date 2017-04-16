@@ -170,7 +170,9 @@ class RTCFactory{
     
     func rtcClientDidSetLocalMediaStream(client: RTCClient, authorized: Bool, audioOnly: Bool)
 
-    func rtcClientDidAddRemoteMediaStream(peer: RTCPeer, stream: RTCMediaStream, audioOnly: Bool)
+    func rtcClientDidAddRemoteMediaStream(client: RTCClient, peer: RTCPeer, stream: RTCMediaStream, audioOnly: Bool)
+    
+    func rtcClientDidRemoveRemoteMediaStream(client: RTCClient, peer: RTCPeer, stream: RTCMediaStream, audioOnly: Bool)
     
     // Optional peer delegate methods
     @objc optional func rtcRemotePeerDidChangeAudioState(peer: RTCPeer, on: Bool)
