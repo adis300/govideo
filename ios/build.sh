@@ -20,6 +20,6 @@ mkdir -p "${DEVICE_BUILD_DIR}"
 cp -r "${DERIVED_DATA_DIR}/Build/Products/Release-iphoneos/${FRAMEWORK_NAME}.framework" "${DEVICE_BUILD_DIR}/${FRAMEWORK_NAME}.framework"
 
 # Lipo up
-lipo -create -output "${UNIVERSAL_BUILD_DIR}/${FRAMEWORK_NAME}.framework/${FRAMEWORK_NAME}" "${DEVICE_BUILD_DIR}/${FRAMEWORK_NAME}.framework/${FRAMEWORK_NAME}" "${SIMULATOR_BUILD_DIR}/${FRAMEWORK_NAME}.framework/${FRAMEWORK_NAME}" 
+# lipo -create -output "${UNIVERSAL_BUILD_DIR}/${FRAMEWORK_NAME}.framework/${FRAMEWORK_NAME}" "${DEVICE_BUILD_DIR}/${FRAMEWORK_NAME}.framework/${FRAMEWORK_NAME}" "${SIMULATOR_BUILD_DIR}/${FRAMEWORK_NAME}.framework/${FRAMEWORK_NAME}" 
 
 rm -rf "${DERIVED_DATA_DIR}"
