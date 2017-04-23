@@ -151,6 +151,7 @@ import WebRTC
     
     fileprivate func handleServerMessage(msg: JSON){
         
+        print("RECEIVING:")
         print(msg)
 
         if let event = msg["event"].string{
@@ -301,6 +302,8 @@ extension RTCClient {
     fileprivate func sendMessage(event: String, data: Any){
         
         let msg = ["event": event, "data": data]
+        print("SENDING:")
+        print(msg)
         sendMessage(msg)
     }
     
@@ -424,10 +427,20 @@ extension RTCPeer: RTCPeerConnectionDelegate{
     
     /** Called any time the IceConnectionState changes. */
     public func peerConnection(_ peerConnection: RTCPeerConnection, didChange newState: RTCIceConnectionState){
-        if newState == .failed {
+        switch newState {
+        case .failed:
             sendPeerMessage(messageType: "connectivityError", payload: nil)
+            print("ERROR: RTCPeer:RTCPeerConnectionDelegate: peer ice failed")
+        case .connected:
+            sendPeerMessage(messageType: "endOfCandidates", payload: nil)
+            print("RTCPeer:RTCPeerConnectionDelegate: peer ice state connected")
+        case .completed:
+            print("RTCPeer:RTCPeerConnectionDelegate: peer ice state completed")
+        default:
+            print("RTCPeer:RTCPeerConnectionDelegate: peer connection ice state did change")
         }
-        print("RTCPeer:RTCPeerConnectionDelegate: peer connection ice state did change")
+        
+        
     }
     
     
@@ -438,7 +451,6 @@ extension RTCPeer: RTCPeerConnectionDelegate{
     
     /** New ice candidate has been found. */
     public func peerConnection(_ peerConnection: RTCPeerConnection, didGenerate candidate: RTCIceCandidate){
-        print(candidate.sdp)
         let candidate:[String: Any] = ["candidate":candidate.sdp,"sdpMid":candidate.sdpMid!,"sdpMLineIndex":candidate.sdpMLineIndex]
         sendPeerMessage(messageType: "candidate", payload: ["candidate":candidate])
         print("RTCPeer:RTCPeerConnectionDelegate: peer connection did generate new ICE candidate")
@@ -498,6 +510,8 @@ extension RTCPeer: RTCPeerConnectionDelegate{
     private(set) var receiveMedia:[String: Any] = RTCClientConfig.defaultReceiveMedia
     public let parent: RTCClient
     fileprivate(set) public var remoteVideoTrack: RTCVideoTrack?
+    fileprivate(set) public var remoteAuduoTrack: RTCAudioTrack?
+
     
     fileprivate var remoteVideoRenderer: RTCEAGLVideoView?
     
