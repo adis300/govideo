@@ -51,7 +51,7 @@ import WebRTC
     // Utility properties
     // fileprivate var peerConnections:[RTCPeerConnection] = []
     
-    public func connect(serverUrl:String, roomId: String, delegate: RTCClientDelegate){
+    public func connect(serverUrl:String, roomId: String, delegate: RTCClientDelegate, params: [String: String]?){
         
         if !sessionReady {
             reset()
@@ -68,7 +68,7 @@ import WebRTC
             
             if RTCClientConfig.audioOnly{
                 delegate.rtcClientDidSetLocalMediaStream(client: self, authorized: true, audioOnly: RTCClientConfig.audioOnly)
-                self.socketConnect(serverUrl: serverUrl, roomId: roomId)
+                self.socketConnect(serverUrl: serverUrl, roomId: roomId, params: params)
             }else{
                 
                 let authStatus = AVCaptureDevice.authorizationStatus(forMediaType: AVMediaTypeVideo)
@@ -83,7 +83,7 @@ import WebRTC
                         localMediaStream?.addVideoTrack(localVideoTrack!)
                         
                         delegate.rtcClientDidSetLocalMediaStream(client: self, authorized: true, audioOnly: RTCClientConfig.audioOnly)
-                        self.socketConnect(serverUrl: serverUrl, roomId: roomId)
+                        self.socketConnect(serverUrl: serverUrl, roomId: roomId, params: params)
                     }else{
                         print("RTCClient:Initialize:Camera unavailable on this device");
                         delegate.rtcClientDidSetLocalMediaStream(client: self, authorized: false, audioOnly: RTCClientConfig.audioOnly)
@@ -98,7 +98,7 @@ import WebRTC
         
     }
     
-    private func socketConnect(serverUrl: String, roomId: String){
+    private func socketConnect(serverUrl: String, roomId: String, params:[String: String]?){
         
         guard delegate != nil else {
             assertionFailure("RTCClient:Not initialized, please call rtcClient.initialize(delegate)")
@@ -110,7 +110,20 @@ import WebRTC
         }
                 
         self.roomId = roomId
-        socket = WebSocket(url: URL(string: serverUrl + roomId)!)
+        var url = serverUrl + roomId
+        if let queryParams = params {
+            if queryParams.count == 1{
+                let key = Array(queryParams.keys)[0]
+                url += "?" + key + "=" + queryParams[key]!
+            }else if queryParams.count > 1{
+                url += "?"
+                queryParams.forEach({ (key, val) in
+                    url += key + "=" + val + "&"
+                })
+                url = url.substring(to: url.index(before: url.endIndex))
+            }
+        }
+        socket = WebSocket(url: URL(string: url)!)
         if !RTCClientConfig.validateSsl{
             socket?.disableSSLCertValidation = true
         }
